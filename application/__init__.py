@@ -27,15 +27,15 @@ def create_app():
         return redirect(url_for('auth.login'))
 
     # Add user_loader for Flask-Login
-    from app.models import Admin
+    from application.models import Admin
     @login_manager.user_loader
     def load_user(user_id):
         return Admin.objects(pk=user_id).first()
 
     with app.app_context():
         # Import parts of our application
-        from app.models import Admin, Student, Fee, PaymentHistory, AuditLog
-        from app.routes import auth, student, fee, admin
+        from application.models import Admin, Student, Fee, PaymentHistory, AuditLog
+        from application.routes import auth, student, fee, admin
 
         # Register blueprints
         app.register_blueprint(auth.bp)
@@ -53,3 +53,6 @@ def create_app():
             default_admin.save()
 
     return app
+
+# Expose app for WSGI servers
+app = create_app()

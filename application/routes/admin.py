@@ -1,8 +1,8 @@
 
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-from app.models import Student, Fee, Admin, AuditLog
-from app import db
+from application.models import Student, Fee, Admin, AuditLog
+from application import db
 from datetime import datetime
 import pytz
 

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from app.models import Admin, AuditLog
-from app import db
+from application.models import Admin, AuditLog
+from application import db
 from datetime import datetime
 
 bp = Blueprint('auth', __name__)

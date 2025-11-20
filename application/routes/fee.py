@@ -1,13 +1,13 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_login import login_required, current_user
-from app.models import Student, Fee, PaymentHistory, AuditLog
-from app import db
+from application.models import Student, Fee, PaymentHistory, AuditLog
+from application import db
 from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from io import BytesIO
 import json
-from app.utils import generate_receipt_pdf
+from application.utils import generate_receipt_pdf
 
 bp = Blueprint('fee', __name__, url_prefix='/fee')
 
