@@ -13,8 +13,11 @@ def create_app():
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
     # MongoDB Settings
+    # MongoDB Settings
+    import certifi
     app.config['MONGODB_SETTINGS'] = {
-        'host': os.environ.get('MONGO_URI', 'mongodb://localhost:27017/school_fee_db')
+        'host': os.environ.get('MONGO_URI', 'mongodb://localhost:27017/school_fee_db'),
+        'tlsCAFile': certifi.where()
     }
 
     # Initialize extensions
