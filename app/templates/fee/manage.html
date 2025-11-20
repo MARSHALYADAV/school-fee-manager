@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Fee Management</h2>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Payment Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="fully_paid" {% if request.args.get('status') == 'fully_paid' %}selected{% endif %}>Fully Paid</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="discounted" {% if request.args.get('status') == 'discounted' %}selected{% endif %}>Discounted</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Class</label>
+                    <select name="class" class="form-select">
+                        <option value="">All</option>
+                        {% for class in range(1, 11) %}
+                        <option value="{{ class }}" {% if request.args.get('class') == class|string %}selected{% endif %}>
+                            Class {{ class }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-select">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if request.args.get('month', now.month|string) == m|string %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Year</label>
+                    <input type="text" name="year" class="form-control" value="{{ request.args.get('year', now.year) }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-secondary">Apply Filters</button>
+                    <a href="{{ url_for('fee.manage_fees') }}" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fee Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Fee Status</th>
+                            <th>Total Fee</th>
+                            <th>Paid Amount</th>
+                            <th>Remaining</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student, fee in students_fees %}
+                        <tr>
+                            <td>{{ student.roll_number }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.class_name }}</td>
+                            <td>{{ student.section }}</td>
+                            <td>
+                                {% if not fee %}
+                                    <span class="badge bg-warning">Not Set</span>
+                                {% elif fee.paid_amount >= fee.total_fee %}
+                                    <span class="badge bg-success">Fully Paid</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{% if fee %}₹{{ "%.2f"|format(fee.total_fee) }}{% else %}-{% endif %}</td>
+                            <td>{% if fee %}₹{{ "%.2f"|format(fee.paid_amount) }}{% else %}-{% endif %}</td>
+                            <td>{% if fee %}₹{{ "%.2f"|format(fee.total_fee - fee.paid_amount) }}{% else %}-{% endif %}</td>
+                            <td>
+                                {% if not fee %}
+                                    <button class="btn btn-sm btn-primary" onclick="calculateAndShowFee('{{ student.id }}')">
+                                        Add Fee
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-sm btn-success" onclick="showPaymentModal('{{ fee.id }}', '{{ fee.total_fee - fee.paid_amount }}')">
+                                        Add Payment
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" onclick="showEditFeeModal('{{ fee.id }}')">
+                                        Edit
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center">No students found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Fee Modal -->
+<div class="modal fade" id="addFeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Fee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addFeeForm" method="POST" onsubmit="setTimeout(function(){ location.reload(); }, 500);">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Month</label>
+                        <select class="form-select" name="month" id="feeMonth">
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Year</label>
+                        <input type="text" class="form-control" name="year" id="feeYear" value="{{ now.year }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Base Fee</label>
+                        <input type="number" class="form-control" name="base_fee" id="baseFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hostel & Food Fee</label>
+                        <input type="number" class="form-control" name="hostel_food_fee" id="hostelFoodFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Milk Fee</label>
+                        <input type="number" class="form-control" name="milk_fee" id="milkFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount</label>
+                        <input type="number" class="form-control" name="discount" value="0" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modals outside table for single instance -->
+<!-- Edit Fee Modal -->
+<div class="modal fade" id="editFeeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Fee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editFeeForm" method="POST" onsubmit="setTimeout(function(){ location.reload(); }, 500);">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Month</label>
+                        <input type="text" class="form-control" name="month" id="editFeeMonth" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Year</label>
+                        <input type="text" class="form-control" name="year" id="editFeeYear" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Base Fee</label>
+                        <input type="number" class="form-control" name="base_fee" id="editBaseFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hostel & Food Fee</label>
+                        <input type="number" class="form-control" name="hostel_food_fee" id="editHostelFoodFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Milk Fee</label>
+                        <input type="number" class="form-control" name="milk_fee" id="editMilkFee" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount</label>
+                        <input type="number" class="form-control" name="discount" id="editDiscount" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addPaymentForm" method="POST" onsubmit="submitPaymentForm(event);">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-control" name="amount" step="0.01" required>
+                        <small class="text-muted">Maximum amount: <span id="maxPayment">0</span></small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-select" name="payment_method" id="paymentMethodSelect" required onchange="togglePaymentFields()">
+                            <option value="cash">Cash</option>
+                            <option value="qr">QR/UPI</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="qrFields">
+                        <label class="form-label">Scan QR Code</label>
+                        <div class="mb-2">
+                            <img src="/static/qr_code.png" alt="QR Code" style="max-width: 200px;">
+                        </div>
+                        <label class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" name="transaction_id" id="transactionIdInput">
+                    </div>
+                    <div class="mb-3 d-none" id="cashFields">
+                        <label class="form-label">Admin Name (Signature)</label>
+                        <input type="text" class="form-control" name="admin_signature" id="adminSignatureInput">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="addPaymentBtn" disabled>Add Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+// Function to validate payment fields
+function validatePaymentFields() {
+    const method = document.getElementById('paymentMethodSelect').value;
+    const addBtn = document.getElementById('addPaymentBtn');
+    if (method === 'qr') {
+        addBtn.disabled = !document.getElementById('transactionIdInput').value.trim();
+    } else {
+        addBtn.disabled = !document.getElementById('adminSignatureInput').value.trim();
+    }
+}
+
+// Function to toggle payment fields based on payment method
+function togglePaymentFields() {
+    const method = document.getElementById('paymentMethodSelect').value;
+    const qrFields = document.getElementById('qrFields');
+    const cashFields = document.getElementById('cashFields');
+    if (method === 'qr') {
+        qrFields.classList.remove('d-none');
+        cashFields.classList.add('d-none');
+        document.getElementById('transactionIdInput').required = true;
+        document.getElementById('adminSignatureInput').required = false;
+    } else {
+        qrFields.classList.add('d-none');
+        cashFields.classList.remove('d-none');
+        document.getElementById('transactionIdInput').required = false;
+        document.getElementById('adminSignatureInput').required = true;
+    }
+    validatePaymentFields();
+}
+
+// Function to calculate and show fee
+function calculateAndShowFee(studentId) {
+    fetch(`/fee/calculate/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('baseFee').value = data.base_fee;
+            document.getElementById('hostelFoodFee').value = data.hostel_food_fee;
+            document.getElementById('milkFee').value = data.milk_fee;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addFeeModal'));
+            document.getElementById('addFeeForm').action = `/fee/add/${studentId}`;
+            modal.show();
+        })
+        .catch(error => console.error('Error calculating fee:', error));
+}
+
+// Function to show payment modal
+function showPaymentModal(feeId, remainingAmount) {
+    try {
+        const modal = new bootstrap.Modal(document.getElementById('addPaymentModal'));
+        document.getElementById('addPaymentForm').action = `/fee/payment/${feeId}`;
+        document.getElementById('maxPayment').textContent = `₹${parseFloat(remainingAmount).toFixed(2)}`;
+        const amountInput = document.querySelector('#addPaymentModal input[name="amount"]');
+        amountInput.max = remainingAmount;
+        amountInput.value = remainingAmount;
+        // Reset payment method and fields
+        document.getElementById('paymentMethodSelect').value = 'cash';
+        document.getElementById('transactionIdInput').value = '';
+        document.getElementById('adminSignatureInput').value = '';
+        togglePaymentFields();
+        modal.show();
+    } catch (e) { 
+        console.error('showPaymentModal error:', e); 
+    }
+}
+
+// Function to show edit fee modal
+function showEditFeeModal(feeId) {
+    try {
+        fetch(`/fee/get/${feeId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editFeeMonth').value = data.month;
+                document.getElementById('editFeeYear').value = data.year;
+                document.getElementById('editBaseFee').value = data.base_fee;
+                document.getElementById('editHostelFoodFee').value = data.hostel_food_fee;
+                document.getElementById('editMilkFee').value = data.milk_fee;
+                document.getElementById('editDiscount').value = data.discount;
+                document.getElementById('editFeeForm').action = `/fee/edit/${feeId}`;
+                const modal = new bootstrap.Modal(document.getElementById('editFeeModal'));
+                modal.show();
+            })
+            .catch(error => console.error('Error getting fee details:', error));
+    } catch (e) { 
+        console.error('showEditFeeModal error:', e); 
+    }
+}
+
+// Function to handle payment form submission
+function submitPaymentForm(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addPaymentModal'));
+
+    // First submission for the payment processing
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.card'));
+
+            // Download receipt
+            form.submit(); // This will trigger the regular form submission for PDF
+
+            // Close modal and refresh table
+            setTimeout(() => {
+                modal.hide();
+                location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing payment: ' + error.message);
+    });
+}
+
+// Add event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('paymentMethodSelect')?.addEventListener('change', togglePaymentFields);
+    document.getElementById('transactionIdInput')?.addEventListener('input', validatePaymentFields);
+    document.getElementById('adminSignatureInput')?.addEventListener('input', validatePaymentFields);
+});
+</script>
+{% endblock %}

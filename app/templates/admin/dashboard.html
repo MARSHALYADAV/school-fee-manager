@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Admin Dashboard</h2>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Students</h5>
+                    <h3 class="card-text">{{ total_students }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Collected Fees</h5>
+                    <h3 class="card-text">₹{{ "%.2f"|format(collected_fees) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Fees</h5>
+                    <h3 class="card-text">₹{{ "%.2f"|format(pending_fees) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Poor Students</h5>
+                    <h3 class="card-text">{{ poor_students }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Class Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Class Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Students</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for class_name, count in class_distribution %}
+                                <tr>
+                                    <td>Class {{ class_name }}</td>
+                                    <td>{{ count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Admins -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Admins</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Last Login</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for admin in active_admins %}
+                                <tr>
+                                    <td>{{ admin.username }}</td>
+                                    <td>{{ admin.last_login.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Recent Activity</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_logs %}
+                        <tr>
+                            <td>
+                                {% if log.local_timestamp %}
+                                    {{ log.local_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                    {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% endif %}
+                            </td>
+                            <td>{{ log.admin.username }}</td>
+                            <td>{{ log.action }}</td>
+                            <td><small>{{ log.details }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Statistics -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Hostel & Food Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td>Total Hostelers</td>
+                                <td>{{ total_hostelers }}</td>
+                            </tr>
+                            <tr>
+                                <td>Food Service Users</td>
+                                <td>{{ total_food }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

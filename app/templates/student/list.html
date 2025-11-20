@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Students List</h2>
+        <a href="{{ url_for('student.add_student') }}" class="btn btn-primary">Add New Student</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Class</label>
+                    <select name="class" class="form-select">
+                        <option value="">All</option>
+                        {% for class in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] %}
+                        <option value="{{ class }}" {% if request.args.get('class') == class %}selected{% endif %}>
+                            Class {{ class }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Hostel</label>
+                    <select name="hostel" class="form-select">
+                        <option value="">All</option>
+                        <option value="yes" {% if request.args.get('hostel') == 'yes' %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if request.args.get('hostel') == 'no' %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Food</label>
+                    <select name="food" class="form-select">
+                        <option value="">All</option>
+                        <option value="yes" {% if request.args.get('food') == 'yes' %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if request.args.get('food') == 'no' %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Economic Status</label>
+                    <select name="economic" class="form-select">
+                        <option value="">All</option>
+                        <option value="Normal" {% if request.args.get('economic') == 'Normal' %}selected{% endif %}>Normal</option>
+                        <option value="Poor" {% if request.args.get('economic') == 'Poor' %}selected{% endif %}>Poor</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-secondary">Apply Filters</button>
+                    <a href="{{ url_for('student.list_students') }}" class="btn btn-outline-secondary">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Contact</th>
+                            <th>Economic Status</th>
+                            <th>Hostel & Food</th>
+                            <th>Milk</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.roll_number }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.class_name }}</td>
+                            <td>{{ student.section }}</td>
+                            <td>{{ student.contact }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'warning' if student.economic_status == 'Poor' else 'success' }}">
+                                    {{ student.economic_status }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if student.hostel_food_opted else 'secondary' }}">
+                                    {{ 'Yes' if student.hostel_food_opted else 'No' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if student.milk_opted else 'secondary' }}">
+                                    {{ 'Yes' if student.milk_opted else 'No' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('student.edit_student', id=student.id) }}" 
+                                       class="btn btn-sm btn-primary">Edit</a>
+                                    <form action="{{ url_for('student.delete_student', id=student.id) }}" 
+                                          method="POST" class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to delete this student?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center">No students found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
